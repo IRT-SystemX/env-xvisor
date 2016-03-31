@@ -80,7 +80,7 @@ linux-configure: $(LINUX_BUILD_CONF)
 
 linux-modules: $(LINUX_BUILD_CONF) | LINUX-prepare TOOLCHAIN-prepare
 	@echo "(modules) Linux"
-	$(Q)$(MAKE) -C $(LINUX_DIR) -j 5 O=$(LINUX_BUILD_DIR) modules
+	$(Q)$(MAKE) -C $(LINUX_DIR) -j $(PARALLEL_JOBS) O=$(LINUX_BUILD_DIR) modules
 
 linux-oldconfig linux-menuconfig linux-savedefconfig linux-dtbs: | \
   $(LINUX_BUILD_DIR) LINUX-prepare TOOLCHAIN-prepare
