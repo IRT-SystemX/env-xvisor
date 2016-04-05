@@ -1,0 +1,121 @@
+From fd6a061789bc5cf844dcc4cf50b86ae43d4d5dfb Mon Sep 17 00:00:00 2001
+From: Jean Guyomarc'h <jean.guyomarch@openwide.fr>
+Date: Tue, 5 Apr 2016 18:19:36 +0200
+Subject: [PATCH] I.MX6: fix compiling of DMA module
+
+---
+ drivers/dma/imx-sdma.c                | 8 ++++----
+ include/linux/platform_data/dma-imx.h | 4 ++--
+ sound/soc/fsl/fsl_asrc.c              | 8 ++++----
+ sound/soc/fsl/imx-pcm-dma.c           | 4 ++--
+ sound/soc/fsl/imx-pcm.h               | 2 +-
+ 5 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/dma/imx-sdma.c b/drivers/dma/imx-sdma.c
+index d11258d..1092aca 100644
+--- a/drivers/dma/imx-sdma.c
++++ b/drivers/dma/imx-sdma.c
+@@ -1048,8 +1048,8 @@ static int sdma_alloc_chan_resources(struct dma_chan *chan)
+ 	}
+ 
+ 	sdmac->peripheral_type = data->peripheral_type;
+-	sdmac->event_id0 = data->dma_request0;
+-	sdmac->event_id1 = data->dma_request1;
++	sdmac->event_id0 = data->dma_request;
++	sdmac->event_id1 = data->dma_request2;
+ 
+ 	clk_enable(sdmac->sdma->clk_ipg);
+ 	clk_enable(sdmac->sdma->clk_ahb);
+@@ -1757,10 +1757,10 @@ static struct dma_chan *sdma_xlate(struct of_phandle_args *dma_spec,
+ 	if (dma_spec->args_count != 3)
+ 		return NULL;
+ 
+-	data.dma_request0 = dma_spec->args[0];
++	data.dma_request = dma_spec->args[0];
+ 	data.peripheral_type = dma_spec->args[1];
+ 	data.priority = dma_spec->args[2];
+-	data.dma_request1 = 0;
++	data.dma_request2 = 0;
+ 
+ 	return dma_request_channel(mask, sdma_filter_fn, &data);
+ }
+diff --git a/include/linux/platform_data/dma-imx.h b/include/linux/platform_data/dma-imx.h
+index dc8613a..9c558d8 100644
+--- a/include/linux/platform_data/dma-imx.h
++++ b/include/linux/platform_data/dma-imx.h
+@@ -50,8 +50,8 @@ enum imx_dma_prio {
+ };
+ 
+ struct imx_dma_data {
+-	int dma_request0; /* DMA request line */
+-	int dma_request1;
++	int dma_request; /* DMA request line */
++	int dma_request2;
+ 	enum sdma_peripheral_type peripheral_type;
+ 	int priority;
+ 	void *data_addr1, *data_addr2;
+diff --git a/sound/soc/fsl/fsl_asrc.c b/sound/soc/fsl/fsl_asrc.c
+index 1e9b9c3..a5e4b61 100644
+--- a/sound/soc/fsl/fsl_asrc.c
++++ b/sound/soc/fsl/fsl_asrc.c
+@@ -89,7 +89,7 @@ static int asrc_p2p_request_channel(struct snd_pcm_substream *substream)
+ 	/* reconfig memory to FIFO dma request */
+ 	dma_params_fe->addr = asrc_p2p->asrc_ops.asrc_p2p_per_addr(
+ 						asrc_p2p->asrc_index, 1);
+-	fe_filter_data->dma_request0 = asrc_p2p->dmarx[asrc_p2p->asrc_index];
++	fe_filter_data->dma_request = asrc_p2p->dmarx[asrc_p2p->asrc_index];
+ 	dma_params_fe->maxburst = dma_params_be->maxburst;
+ 
+ 	dma_cap_zero(mask);
+@@ -99,9 +99,9 @@ static int asrc_p2p_request_channel(struct snd_pcm_substream *substream)
+ 	/* config p2p dma channel */
+ 	asrc_p2p->asrc_p2p_dma_data.peripheral_type = IMX_DMATYPE_ASRC;
+ 	asrc_p2p->asrc_p2p_dma_data.priority        = DMA_PRIO_HIGH;
+-	asrc_p2p->asrc_p2p_dma_data.dma_request1    = asrc_p2p->dmatx[asrc_p2p->asrc_index];
++	asrc_p2p->asrc_p2p_dma_data.dma_request2    = asrc_p2p->dmatx[asrc_p2p->asrc_index];
+ 	/* need to get target device's dma dma_addr, burstsize */
+-	asrc_p2p->asrc_p2p_dma_data.dma_request0    = be_filter_data->dma_request0;
++	asrc_p2p->asrc_p2p_dma_data.dma_request    = be_filter_data->dma_request;
+ 
+ 	/* Request channel */
+ 	asrc_p2p->asrc_p2p_dma_chan =
+@@ -124,7 +124,7 @@ static int asrc_p2p_request_channel(struct snd_pcm_substream *substream)
+ 	slave_config.dst_addr       = dma_params_be->addr;
+ 	slave_config.dst_addr_width = buswidth;
+ 	slave_config.dst_maxburst   = dma_params_be->maxburst * 2;
+-	slave_config.dma_request0   = be_filter_data->dma_request0;
++	slave_config.dma_request0   = be_filter_data->dma_request;
+ 	slave_config.dma_request1   = asrc_p2p->dmatx[asrc_p2p->asrc_index];
+ 
+ 	ret = dmaengine_slave_config(asrc_p2p->asrc_p2p_dma_chan,
+diff --git a/sound/soc/fsl/imx-pcm-dma.c b/sound/soc/fsl/imx-pcm-dma.c
+index 33752da..e43283e 100644
+--- a/sound/soc/fsl/imx-pcm-dma.c
++++ b/sound/soc/fsl/imx-pcm-dma.c
+@@ -86,8 +86,8 @@ static void imx_pcm_dma_set_config_from_dai_data(
+ 	 * set to zero.
+ 	*/
+ 	if (filter_data) {
+-		slave_config->dma_request0 = filter_data->dma_request0;
+-		slave_config->dma_request1 = filter_data->dma_request1;
++		slave_config->dma_request0 = filter_data->dma_request;
++		slave_config->dma_request1 = filter_data->dma_request2;
+ 	} else {
+ 		slave_config->dma_request0 = 0;
+ 		slave_config->dma_request1 = 0;
+diff --git a/sound/soc/fsl/imx-pcm.h b/sound/soc/fsl/imx-pcm.h
+index ee01836..8ba715f 100644
+--- a/sound/soc/fsl/imx-pcm.h
++++ b/sound/soc/fsl/imx-pcm.h
+@@ -28,7 +28,7 @@ static inline void
+ imx_pcm_dma_params_init_data(struct imx_dma_data *dma_data,
+ 	int dma, bool shared)
+ {
+-	dma_data->dma_request0 = dma;
++	dma_data->dma_request = dma;
+ 	dma_data->priority = DMA_PRIO_HIGH;
+ 	if (shared)
+ 		dma_data->peripheral_type = IMX_DMATYPE_SSI_SP;
+-- 
+2.1.4
+
