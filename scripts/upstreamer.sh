@@ -94,6 +94,12 @@ if [ $? -ne 0 ]; then
    sorry "Just rebase or you will have conflicts"
 fi
 
+# Did you compile?
+prompt "Did you push your branch and wait for Jenkins to validate?"
+if [ $? -ne 0 ]; then
+   sorry "Don't even think about submitting code that does not event compile"
+fi
+
 # Extract all patches
 msg "Extracting patches on branch ${branch}..."
 patches=$(git format-patch --signoff --cover-letter -M -C "$branch")
