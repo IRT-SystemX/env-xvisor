@@ -48,11 +48,6 @@ endif
 
 ifneq ($(BUILD_DEBUG),1)
   MAKEFLAGS += --no-print-directory
-
-  # ifneq ($(PARALLEL_JOBS),)
-  #   # TODO: Correct this, this should not be set here
-  #   MAKEFLAGS += -j$(PARALLEL_JOBS)
-  # endif
 endif
 
 define COPY

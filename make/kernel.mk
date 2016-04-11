@@ -26,6 +26,8 @@ XVISOR_LINUX_CONF_DIR=$(XVISOR_DIR)/tests/$(XVISOR_ARCH)/$(GUEST_BOARDNAME)/linu
 XVISOR_LINUX_CONF_NAME=$(LINUX_PATH)_defconfig
 XVISOR_LINUX_CONF=$(XVISOR_LINUX_CONF_DIR)/$(XVISOR_LINUX_CONF_NAME)
 
+linux-make = $(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) -j $(PARALLEL_JOBS) $(1)
+
 $(XVISOR_LINUX_CONF): XVISOR-prepare
 
 $(LINUX_BUILD_DIR):
@@ -35,12 +37,12 @@ $(LINUX_BUILD_CONF): $(XVISOR_LINUX_CONF) | $(LINUX_BUILD_DIR) LINUX-prepare \
   TOOLCHAIN-prepare
 	@echo "(defconfig) Linux"
 	$(Q)cp $< $@
-	$(Q)$(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) oldconfig
+	$(Q)$(call linux-make,oldconfig)
 
 $(LINUX_BUILD_DIR)/vmlinux: $(LINUX_BUILD_CONF) | LINUX-prepare \
   TOOLCHAIN-prepare
 	@echo "(make) Linux"
-	$(Q)$(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) vmlinux
+	$(Q)$(call linux-make,vmlinux)
 
 $(DISK_DIR)/$(DISK_BOARD)/$(KERN_IMG): $(LINUX_BUILD_DIR)/vmlinux \
   $(XVISOR_DIR)/$(XVISOR_ELF2C) $(XVISOR_BUILD_DIR)/$(XVISOR_CPATCH) \
@@ -49,12 +51,11 @@ $(DISK_DIR)/$(DISK_BOARD)/$(KERN_IMG): $(LINUX_BUILD_DIR)/vmlinux \
 	$(Q)cp $< $<.unpatched
 	$(Q)$(XVISOR_DIR)/$(XVISOR_ELF2C) -f $< | \
 	  $(XVISOR_BUILD_DIR)/$(XVISOR_CPATCH) $< 0
-	$(Q)$(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) Image
+	$(Q)$(call linux-make,Image)
 	$(Q)cp $(LINUX_BUILD_DIR)/arch/$(ARCH)/boot/Image $@
 
 $(LINUX_BUILD_DIR)/arch/$(ARCH)/boot/zImage: $(LINUX_BUILD_DIR)/vmlinux
-	$(Q)$(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) zImage
-
+	$(Q)$(call linux-make,zImage)
 
 $(LINUX_DIR)/arch/$(ARCH)/boot/dts/$(KERN_DT).dts: | LINUX-prepare
 
@@ -80,12 +81,12 @@ linux-configure: $(LINUX_BUILD_CONF)
 
 linux-modules: $(LINUX_BUILD_CONF) | LINUX-prepare TOOLCHAIN-prepare
 	@echo "(modules) Linux"
-	$(Q)$(MAKE) -C $(LINUX_DIR) -j $(PARALLEL_JOBS) O=$(LINUX_BUILD_DIR) modules
+	$(Q)$(call linux-make,modules)
 
 linux-oldconfig linux-menuconfig linux-savedefconfig linux-dtbs: | \
   $(LINUX_BUILD_DIR) LINUX-prepare TOOLCHAIN-prepare
 	@echo "($(subst linux-,,$@)) Linux"
-	$(Q)$(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) $(subst linux-,,$@)
+	$(Q)$(call linux-make,$(subst linux-,,$@))
 
 linux-clean:
 	$(Q)$(RM) $(LINUX_BUILD_DIR)/vmlinux
