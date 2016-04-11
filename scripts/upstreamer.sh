@@ -152,3 +152,12 @@ fi
 # Actually send!
 # No "$patches" byt $patches because it is a list!
 git send-email --to="$email" $patches
+
+# Clean-up
+prompt "Do you wish to remove the patch files?"
+if [ $? -eq 0 ]; then
+   for p in $patches; do
+      msg "Removing $p"
+      rm "$p"
+   done
+fi
