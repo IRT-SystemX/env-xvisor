@@ -55,7 +55,7 @@ PATCHDIR="${CURDIR}"/patches
 BUILDDIR="${CURDIR}"/build
 
 # Temporary file directory
-TMPDIR=/tmp/xvisor_env-"$(date "+%Y%m%d-%H%M%S")"
+TMPDIR="${BUILDDIR}"/tmp
 
 # Downloaded archive directory
 ARCDIR="${BUILDDIR}"/archives
