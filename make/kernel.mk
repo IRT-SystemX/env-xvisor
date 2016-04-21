@@ -63,14 +63,6 @@ dtsflags = $(cppflags) -nostdinc -nostdlib -fno-builtin -D__DTS__
 dtsflags += -x assembler-with-cpp -I$(XVISOR_LINUX_CONF_DIR)
 dtsflags += -I$(LINUX_DIR)/include -I$(LINUX_DIR)/arch/$(ARCH)/boot/dts
 
-DTSDEPS := $(TMPDIR)/$(KERN_DT).deps
-
-$(DTSDEPS): $(TMPDIR)/$(KERN_DT).pre.dts | \
-  XVISOR-prepare $(DISK_DIR)/$(DISK_BOARD)
-	@echo "(deps) $(KERN_DT)"
-	$(CROSS_COMPILE)cpp -M -MT $(TMPDIR)/$(KERN_DT).dts $(dtsflags) $< -o $@
-
--include $(DTSDEPS)
 
 $(TMPDIR)/$(KERN_DT).pre.dts: $(XVISOR_LINUX_CONF_DIR)/$(KERN_DT).dts | \
   XVISOR-prepare $(DISK_DIR)/$(DISK_BOARD)
