@@ -146,7 +146,7 @@ $(DISKB)/nor_flash.list: $(CONF) | $(DISKB)
 ifeq ($(USE_KERN_DT),1)
 	$(Q)echo "$(ADDRH_FLASH_KERN_DT) /$(DISK_BOARD)/$(KERN_DT).dtb" >> $@
 endif
-	$(Q)echo "$(ADDRH_FLASH_RFS) /$(DISK_ARCH)/$(INITRD)" >> $@
+#$(Q)echo "$(ADDRH_FLASH_RFS) /$(DISK_ARCH)/$(INITRD)" >> $@
 
 
 ifeq ($(USE_KERN_DT),1)
@@ -161,11 +161,12 @@ ifeq ($(USE_KERN_DT),1)
 	$(Q)printf "copy $(ADDRH_KERN_DT) $(ADDRH_FLASH_KERN_DT) " >> $@
 	$(Q)$(call FILE_SIZE,$(DISKB_KERN_DTB)) >> $@
 endif
-	$(Q)printf "copy $(ADDRH_RFS) $(ADDRH_FLASH_RFS) " >> $@
-	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
+	#$(Q)printf "copy $(ADDRH_RFS) $(ADDRH_FLASH_RFS) " >> $@
+	#$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
 ifeq ($(USE_KERN_DT),1)
-	$(Q)printf "start_linux_fdt $(ADDRH_KERN) $(ADDRH_KERN_DT) $(ADDRH_RFS) " >> $@
-	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
+	$(Q)printf "start_linux_fdt $(ADDRH_KERN) $(ADDRH_KERN_DT)\n" >> $@
+	#$(Q)printf "start_linux_fdt $(ADDRH_KERN) $(ADDRH_KERN_DT) $(ADDRH_RFS) " >> $@
+	#$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
 else
 	$(Q)printf "start_linux $(ADDRH_KERN) $(ADDRH_RFS) " >> $@
 	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
