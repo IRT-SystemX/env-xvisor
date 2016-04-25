@@ -1,8 +1,8 @@
 #
 # Automatically generated make config: don't edit
 # Project: Xvisor (eXtensible Versatile hypervISOR)
-# Version: 0.2.6
-# Tue Nov 17 16:16:09 2015
+# Version: 0.2.7
+# Thu Apr 14 16:17:12 2016
 #
 CONFIG_ARCH_ARM=y
 # CONFIG_ARCH_x86 is not set
@@ -94,6 +94,7 @@ CONFIG_IMX6Q_PM=y
 #
 CONFIG_MODULES=y
 # CONFIG_VERBOSE_MODE is not set
+CONFIG_ENABLE_SAFETY_CHECKS=y
 CONFIG_LOG_LEVEL=6
 CONFIG_IRQ_STACK_SIZE=4096
 CONFIG_THREAD_STACK_SIZE=8192
@@ -185,6 +186,11 @@ CONFIG_VINPUT_KEYMAP_EN_US=y
 # CONFIG_VINPUT_KEYMAP_TR is not set
 
 #
+# Compiler Features Support
+#
+# CONFIG_STACK_PROTECTOR is not set
+
+#
 # Command Options
 #
 
@@ -222,11 +228,8 @@ CONFIG_CMD_VSCREEN=y
 #
 CONFIG_CMD_INPUT=y
 CONFIG_CMD_FB=y
-CONFIG_CMD_FB_LOGO=y
-CONFIG_CMD_FB_LOGO_XVISOR=y
-# CONFIG_CMD_FB_LOGO_SYSTEMX is not set
-CONFIG_CMD_FB_IMAGE=y
 CONFIG_CMD_FB_BACKLIGHT=y
+CONFIG_CMD_FB_LOGO=y
 CONFIG_CMD_BLOCKDEV=y
 CONFIG_CMD_RBD=y
 CONFIG_CMD_FLASH=y
@@ -269,7 +272,7 @@ CONFIG_VSCREEN=y
 CONFIG_NET_STACK=y
 CONFIG_NET_STACK_LWIP=y
 CONFIG_LWIP=y
-# CONFIG_VSTELNET is not set
+# CONFIG_VSDAEMON is not set
 
 #
 # Virtual Terminal Emulator Options
@@ -469,11 +472,15 @@ CONFIG_COMMON_CLK_MXC=y
 #
 # Power Supply Drivers
 #
-# CONFIG_POWER_SUPPLY is not set
+CONFIG_POWER_SUPPLY=y
 
 #
 # Power-off or Reset Drivers
 #
+CONFIG_POWER_RESET=y
+# CONFIG_POWER_RESET_BCM2835 is not set
+# CONFIG_POWER_RESET_SUN4I is not set
+# CONFIG_POWER_RESET_IMX_GPC is not set
 
 #
 # Multifunction device drivers
@@ -533,6 +540,7 @@ CONFIG_I2C_BOARDINFO=y
 # I2C system bus drivers (mostly embedded / system-on-chip)
 #
 CONFIG_I2C_IMX=y
+# CONFIG_I2C_BCM2835 is not set
 
 #
 # PWM Drivers
@@ -550,10 +558,12 @@ CONFIG_IMX_RESET=y
 # Miscellaneous Drivers
 #
 CONFIG_SRAM=y
+CONFIG_BOOTSTRAP=y
 
 #
 # Device Emulators
 #
+CONFIG_DEBUG_EMU=y
 
 #
 # VirtIO Support
@@ -602,12 +612,13 @@ CONFIG_EMU_MISC_A9MPCORE=y
 CONFIG_EMU_MISC_IMX6_ANATOP=y
 CONFIG_EMU_MISC_IMX6_ANATOP_REVISION=2
 CONFIG_EMU_MISC_IMX6_CCM=y
+CONFIG_EMU_MISC_IMX6_APBH=y
 
 #
 # Pass-through Emulators
 #
 CONFIG_EMU_PT_SIMPLE=y
-CONFIG_EMU_PT_DEDICATED=y
+CONFIG_EMU_PT_IMX6_GPC=y
 
 #
 # Network Interface Controller Emulators
@@ -668,6 +679,16 @@ CONFIG_EMU_GPIO_PL061=y
 # PCI Bus Emulators
 #
 # CONFIG_EMU_PCI is not set
+
+#
+# Watchdog Emulators
+#
+# CONFIG_EMU_WDT is not set
+
+#
+# Power Emulators
+#
+CONFIG_EMU_POWER_IMX6_GPC=y
 
 #
 # Tool Options
