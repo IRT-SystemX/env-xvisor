@@ -83,6 +83,10 @@ linux-modules: $(LINUX_BUILD_CONF) | LINUX-prepare TOOLCHAIN-prepare
 	@echo "(modules) Linux"
 	$(Q)$(call linux-make,modules)
 
+linux-dtbs: $(LINUX_BUILD_CONF) | LINUX-prepare TOOLCHAIN-prepare
+	@echo "(dtbs) Linux"
+	$(Q)$(call linux-make,dtbs)
+
 linux-oldconfig linux-menuconfig linux-savedefconfig linux-dtbs: | \
   $(LINUX_BUILD_DIR) LINUX-prepare TOOLCHAIN-prepare
 	@echo "($(subst linux-,,$@)) Linux"
