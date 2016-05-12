@@ -260,11 +260,19 @@ packages_check() {
 	    exit 1
         fi
         ;;
-    Ubuntu|Debian)
+    Ubuntu)
         if [ "x86_64" = "$(uname -m)" ]; then
            package_debian_installed gcc-multilib
 	   package_debian_installed binutils-multiarch
 	fi
+        if [ -n "${INSTALL_DEBIAN}" ]; then
+            printf "${BOLD}Please install the following packages before "
+            printf "continuing:${NORMAL}\n"
+            printf "  sudo apt-get install ${INSTALL_DEBIAN}\n"
+	    exit 1
+        fi
+	;;
+    Debian)
         if [ -n "${INSTALL_DEBIAN}" ]; then
             printf "${BOLD}Please install the following packages before "
             printf "continuing:${NORMAL}\n"
