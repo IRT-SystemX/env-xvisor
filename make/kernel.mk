@@ -30,6 +30,9 @@ linux-make = $(MAKE) -C $(LINUX_DIR) O=$(LINUX_BUILD_DIR) -j $(PARALLEL_JOBS) $(
 
 $(XVISOR_LINUX_CONF): XVISOR-prepare
 
+linux-zimage:
+	$(call linux-make,zImage)
+
 $(LINUX_BUILD_DIR):
 	$(Q)mkdir -p $@
 
