@@ -1,0 +1,811 @@
+From ed16cd6e402ba8846947981271c63fecc5ab38bf Mon Sep 17 00:00:00 2001
+From: Jean Guyomarc'h <jean.guyomarch@openwide.fr>
+Date: Wed, 18 May 2016 14:25:09 +0200
+Subject: [PATCH] [RIP] Last state of debug
+
+This RIP patches contains:
+- more debug information;
+- significant changes of the IPU driver:
+  - handle each significant interrupt in
+    separate ISR. I wanted to trigger interrupts
+    directly from Xvisor without having the massive
+    memory access.
+
+No page flip at boot time.
+Terrible performances if this would have ever worked
+No synchronisation: RIP!!
+
+diff --git a/arch/arm/mach-imx/devices/platform-ipu-core.c b/arch/arm/mach-imx/devices/platform-ipu-core.c
+index 6bd7c3f..fc954e6 100644
+--- a/arch/arm/mach-imx/devices/platform-ipu-core.c
++++ b/arch/arm/mach-imx/devices/platform-ipu-core.c
+@@ -54,6 +54,7 @@ struct platform_device *__init imx_add_ipu_core(
+ 		},
+ 	};
+ 
++	printk(KERN_ERR "******************* ADDING ipu-core\n");
+ 	return imx_ipu_coredev = imx_add_platform_device("ipu-core", -1,
+ 			res, ARRAY_SIZE(res), NULL, 0);
+ }
+diff --git a/arch/arm/mach-imx/mach-pcm037.c b/arch/arm/mach-imx/mach-pcm037.c
+index 6d87941..825d8b0 100644
+--- a/arch/arm/mach-imx/mach-pcm037.c
++++ b/arch/arm/mach-imx/mach-pcm037.c
+@@ -578,6 +578,8 @@ static void __init pcm037_init(void)
+ {
+ 	int ret;
+ 
++	printk(KERN_ERR "*********** %s()\n", __func__);
++
+ 	imx31_soc_init();
+ 
+ 	regulator_register_fixed(0, dummy_supplies, ARRAY_SIZE(dummy_supplies));
+diff --git a/drivers/block/virtio_blk.c b/drivers/block/virtio_blk.c
+index 6ca3549..f190772 100644
+--- a/drivers/block/virtio_blk.c
++++ b/drivers/block/virtio_blk.c
+@@ -1,4 +1,4 @@
+-//#define DEBUG
++#define DEBUG
+ #include <linux/spinlock.h>
+ #include <linux/slab.h>
+ #include <linux/blkdev.h>
+diff --git a/drivers/dma/ipu/ipu_idmac.c b/drivers/dma/ipu/ipu_idmac.c
+index b54f62d..c81dbb9 100644
+--- a/drivers/dma/ipu/ipu_idmac.c
++++ b/drivers/dma/ipu/ipu_idmac.c
+@@ -9,6 +9,7 @@
+  * published by the Free Software Foundation.
+  */
+ 
++#define DEBUG
+ #include <linux/dma-mapping.h>
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
+@@ -64,6 +65,7 @@ static u32 idmac_read_ipureg(struct ipu *ipu, unsigned long reg)
+ 
+ static void idmac_write_ipureg(struct ipu *ipu, u32 value, unsigned long reg)
+ {
++	printk(KERN_ERR "%s()\n", __func__);
+ 	__raw_writel(value, ipu->reg_ipu + reg);
+ }
+ 
+diff --git a/drivers/dma/ipu/ipu_irq.c b/drivers/dma/ipu/ipu_irq.c
+index 2bf37e6..5d2e755 100644
+--- a/drivers/dma/ipu/ipu_irq.c
++++ b/drivers/dma/ipu/ipu_irq.c
+@@ -7,6 +7,7 @@
+  * published by the Free Software Foundation.
+  */
+ 
++#define DEBUG
+ #include <linux/init.h>
+ #include <linux/err.h>
+ #include <linux/spinlock.h>
+diff --git a/drivers/gpu/drm/drm_crtc.c b/drivers/gpu/drm/drm_crtc.c
+index f619121..e55e3b5 100644
+--- a/drivers/gpu/drm/drm_crtc.c
++++ b/drivers/gpu/drm/drm_crtc.c
+@@ -5257,6 +5257,8 @@ int drm_mode_page_flip_ioctl(struct drm_device *dev,
+ 	unsigned long flags;
+ 	int ret = -EINVAL;
+ 
++	printk(KERN_ERR "==================== %s()\n", __func__);
++
+ 	if (page_flip->flags & ~DRM_MODE_PAGE_FLIP_FLAGS ||
+ 	    page_flip->reserved != 0)
+ 		return -EINVAL;
+@@ -5333,6 +5335,7 @@ int drm_mode_page_flip_ioctl(struct drm_device *dev,
+ 
+ 	crtc->primary->old_fb = crtc->primary->fb;
+ 	ret = crtc->funcs->page_flip(crtc, fb, e, page_flip->flags);
++	printk(KERN_ERR "############### page_flip() has been called\n");
+ 	if (ret) {
+ 		if (page_flip->flags & DRM_MODE_PAGE_FLIP_EVENT) {
+ 			spin_lock_irqsave(&dev->event_lock, flags);
+diff --git a/drivers/gpu/drm/drm_drv.c b/drivers/gpu/drm/drm_drv.c
+index 167c8d3..3840b50 100644
+--- a/drivers/gpu/drm/drm_drv.c
++++ b/drivers/gpu/drm/drm_drv.c
+@@ -37,7 +37,7 @@
+ #include "drm_legacy.h"
+ #include "drm_internal.h"
+ 
+-unsigned int drm_debug = 0;	/* bitmask of DRM_UT_x */
++unsigned int drm_debug = 0xffff;	/* bitmask of DRM_UT_x */
+ EXPORT_SYMBOL(drm_debug);
+ 
+ MODULE_AUTHOR(CORE_AUTHOR);
+diff --git a/drivers/gpu/drm/imx/ipuv3-crtc.c b/drivers/gpu/drm/imx/ipuv3-crtc.c
+index 2872263..da3ad14 100644
+--- a/drivers/gpu/drm/imx/ipuv3-crtc.c
++++ b/drivers/gpu/drm/imx/ipuv3-crtc.c
+@@ -12,6 +12,7 @@
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  * GNU General Public License for more details.
+  */
++#define DEBUG 1
+ #include <linux/component.h>
+ #include <linux/module.h>
+ #include <linux/export.h>
+@@ -27,8 +28,12 @@
+ 
+ #include <video/imx-ipu-v3.h>
+ #include "imx-drm.h"
++#include "../../ipu-v3/ipu-prv.h"
+ #include "ipuv3-plane.h"
+ 
++#undef DEBUG
++#define DEBUG 1
++
+ #define DRIVER_DESC		"i.MX IPUv3 Graphics"
+ 
+ struct ipu_crtc {
+@@ -180,6 +185,8 @@ static int ipu_crtc_mode_set(struct drm_crtc *crtc,
+ 	sig_cfg.v_to_h_sync = 0;
+ 	sig_cfg.hsync_pin = ipu_crtc->di_hsync_pin;
+ 	sig_cfg.vsync_pin = ipu_crtc->di_vsync_pin;
++	dev_dbg(ipu_crtc->dev, "%s: hsync/vsync pins: %u %u\n",
++		__func__,  sig_cfg.hsync_pin, sig_cfg.hsync_pin);
+ 
+ 	drm_display_mode_to_videomode(mode, &sig_cfg.mode);
+ 
+@@ -221,10 +228,12 @@ static void ipu_crtc_handle_pageflip(struct ipu_crtc *ipu_crtc)
+ 	spin_unlock_irqrestore(&drm->event_lock, flags);
+ }
+ 
+-static irqreturn_t ipu_irq_handler(int irq, void *dev_id)
++static irqreturn_t ipu_irq_handler2(int irq, void *dev_id)
+ {
+ 	struct ipu_crtc *ipu_crtc = dev_id;
+ 
++	printk(KERN_ERR "Yep, I'm there\n");
++
+ 	imx_drm_handle_vblank(ipu_crtc->imx_crtc);
+ 
+ 	if (ipu_crtc->newfb) {
+@@ -234,6 +243,7 @@ static irqreturn_t ipu_irq_handler(int irq, void *dev_id)
+ 		ipu_plane_set_base(plane, ipu_crtc->base.primary->fb,
+ 				   plane->x, plane->y);
+ 		ipu_crtc_handle_pageflip(ipu_crtc);
++		panic("yesse\n");
+ 	}
+ 
+ 	return IRQ_HANDLED;
+@@ -394,9 +404,15 @@ static int ipu_crtc_init(struct ipu_crtc *ipu_crtc,
+ 			ipu_crtc->plane[1] = NULL;
+ 	}
+ 
++#if 1
++	ipu_crtc->irq = ipu->irq_a;
++	ret = devm_request_irq(ipu_crtc->dev, ipu_crtc->irq, ipu_irq_handler2, IRQF_SHARED,
++			"imx_drm", ipu_crtc);
++#else
+ 	ipu_crtc->irq = ipu_plane_irq(ipu_crtc->plane[0]);
+-	ret = devm_request_irq(ipu_crtc->dev, ipu_crtc->irq, ipu_irq_handler, 0,
++	ret = devm_request_irq(ipu_crtc->dev, ipu_crtc->irq, ipu_irq_handler2, 0,
+ 			"imx_drm", ipu_crtc);
++#endif
+ 	if (ret < 0) {
+ 		dev_err(ipu_crtc->dev, "irq request failed with %d.\n", ret);
+ 		goto err_put_plane_res;
+diff --git a/drivers/gpu/drm/imx/ipuv3-plane.c b/drivers/gpu/drm/imx/ipuv3-plane.c
+index 26bb1b6..3b7c570 100644
+--- a/drivers/gpu/drm/imx/ipuv3-plane.c
++++ b/drivers/gpu/drm/imx/ipuv3-plane.c
+@@ -82,8 +82,8 @@ int ipu_plane_set_base(struct ipu_plane *ipu_plane, struct drm_framebuffer *fb,
+ 		return -EFAULT;
+ 	}
+ 
+-	dev_dbg(ipu_plane->base.dev->dev, "phys = %pad, x = %d, y = %d",
+-		&cma_obj->paddr, x, y);
++//	dev_dbg(ipu_plane->base.dev->dev, "phys = %pad, x = %d, y = %d",
++//		&cma_obj->paddr, x, y);
+ 
+ 	eba = cma_obj->paddr + fb->offsets[0] +
+ 	      fb->pitches[0] * y + (fb->bits_per_pixel >> 3) * x;
+@@ -201,7 +201,9 @@ int ipu_plane_mode_set(struct ipu_plane *ipu_plane, struct drm_crtc *crtc,
+ 		}
+ 	}
+ 
++	printk(KERN_ERR "***** %s : %i\n", __FILE__, __LINE__);
+ 	ret = ipu_dmfc_init_channel(ipu_plane->dmfc, crtc_w);
++	printk(KERN_ERR "***** %s : %i\n", __FILE__, __LINE__);
+ 	if (ret) {
+ 		dev_err(dev, "initializing dmfc channel failed with %d\n", ret);
+ 		return ret;
+diff --git a/drivers/gpu/ipu-v3/ipu-common.c b/drivers/gpu/ipu-v3/ipu-common.c
+index e00db3f..3e204be 100644
+--- a/drivers/gpu/ipu-v3/ipu-common.c
++++ b/drivers/gpu/ipu-v3/ipu-common.c
+@@ -12,6 +12,8 @@
+  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  * for more details.
+  */
++
++#define DEBUG
+ #include <linux/module.h>
+ #include <linux/export.h>
+ #include <linux/types.h>
+@@ -35,6 +37,9 @@
+ #include <video/imx-ipu-v3.h>
+ #include "ipu-prv.h"
+ 
++#undef DEBUG
++#define DEBUG
++
+ static inline u32 ipu_cm_read(struct ipu_soc *ipu, unsigned offset)
+ {
+ 	return readl(ipu->cm_reg + offset);
+@@ -42,6 +47,7 @@ static inline u32 ipu_cm_read(struct ipu_soc *ipu, unsigned offset)
+ 
+ static inline void ipu_cm_write(struct ipu_soc *ipu, u32 value, unsigned offset)
+ {
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	writel(value, ipu->cm_reg + offset);
+ }
+ 
+@@ -578,6 +584,7 @@ int ipu_wait_interrupt(struct ipu_soc *ipu, int irq, int ms)
+ 	unsigned long timeout;
+ 
+ 	timeout = jiffies + msecs_to_jiffies(ms);
++	printk(KERN_ERR " == %s(%i)\n", __func__, irq);
+ 	ipu_cm_write(ipu, BIT(irq % 32), IPU_INT_STAT(irq / 32));
+ 	while (!(ipu_cm_read(ipu, IPU_INT_STAT(irq / 32) & BIT(irq % 32)))) {
+ 		if (time_after(jiffies, timeout))
+@@ -800,7 +807,7 @@ static int ipu_submodules_init(struct ipu_soc *ipu,
+ 		struct platform_device *pdev, unsigned long ipu_base,
+ 		struct clk *ipu_clk)
+ {
+-	char *unit;
++	const char *unit;
+ 	int ret;
+ 	struct device *dev = &pdev->dev;
+ 	const struct ipu_devtype *devtype = ipu->devtype;
+@@ -924,6 +931,8 @@ static void ipu_irq_handler(struct irq_desc *desc)
+ 	struct irq_chip *chip = irq_desc_get_chip(desc);
+ 	const int int_reg[] = { 0, 1, 2, 3, 10, 11, 12, 13, 14};
+ 
++	printk(KERN_ERR "##################################### IRQ SYNC\n");
++
+ 	chained_irq_enter(chip, desc);
+ 
+ 	ipu_irq_handle(ipu, int_reg, ARRAY_SIZE(int_reg));
+@@ -937,6 +946,8 @@ static void ipu_err_irq_handler(struct irq_desc *desc)
+ 	struct irq_chip *chip = irq_desc_get_chip(desc);
+ 	const int int_reg[] = { 4, 5, 8, 9};
+ 
++	printk(KERN_ERR "##################################### IRQ ERR\n");
++
+ 	chained_irq_enter(chip, desc);
+ 
+ 	ipu_irq_handle(ipu, int_reg, ARRAY_SIZE(int_reg));
+@@ -1122,7 +1133,11 @@ static int ipu_irq_init(struct ipu_soc *ipu)
+ 	}
+ 
+ 	for (i = 0; i < IPU_NUM_IRQS; i += 32)
+-		ipu_cm_write(ipu, 0, IPU_INT_CTRL(i / 32));
++		ipu_cm_write(ipu, 0x00000000, IPU_INT_CTRL(i / 32));
++
++//	/* FIXME THat is sooooooooo f*cking bad. */
++//	ipu_cm_write(ipu, 0x10800000, IPU_INT_CTRL(0));
++//	ipu_cm_write(ipu, 0x00000208, IPU_INT_CTRL(15));
+ 
+ 	for (i = 0; i < IPU_NUM_IRQS; i += 32) {
+ 		gc = irq_get_domain_generic_chip(ipu->domain, i);
+@@ -1136,6 +1151,8 @@ static int ipu_irq_init(struct ipu_soc *ipu)
+ 		ct->regs.mask = IPU_INT_CTRL(i / 32);
+ 	}
+ 
++	//printk(KERN_ERR "### Setting up IRQ handler for IRQs %u, %u\n",
++	//       ipu->irq_sync, ipu->irq_err);
+ 	irq_set_chained_handler_and_data(ipu->irq_sync, ipu_irq_handler, ipu);
+ 	irq_set_chained_handler_and_data(ipu->irq_err, ipu_err_irq_handler,
+ 					 ipu);
+@@ -1206,17 +1223,21 @@ static int ipu_probe(struct platform_device *pdev)
+ 	struct ipu_soc *ipu;
+ 	struct resource *res;
+ 	unsigned long ipu_base;
+-	int i, ret, irq_sync, irq_err;
++	int i, ret, irq_c, irq_d, irq_a, irq_b, irq_sync, irq_err;
+ 	const struct ipu_devtype *devtype;
+ 
+ 	devtype = of_id->data;
+ 
+ 	irq_sync = platform_get_irq(pdev, 0);
+ 	irq_err = platform_get_irq(pdev, 1);
++	irq_a = platform_get_irq(pdev, 2);
++	irq_b = platform_get_irq(pdev, 3);
++	irq_c = platform_get_irq(pdev, 4);
++	irq_d = platform_get_irq(pdev, 5);
+ 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ 
+-	dev_dbg(&pdev->dev, "irq_sync: %d irq_err: %d\n",
+-			irq_sync, irq_err);
++	dev_dbg(&pdev->dev, "irq_sync: %d, irq_err: %d, irq_a: %d irq_b: %d, irq_c: %d, irq_d: %d\n",
++		irq_sync, irq_err, irq_a, irq_b, irq_c, irq_d);
+ 
+ 	if (!res || irq_sync < 0 || irq_err < 0)
+ 		return -ENODEV;
+@@ -1289,6 +1310,10 @@ static int ipu_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	ipu->dev = &pdev->dev;
++	ipu->irq_a = irq_a;
++	ipu->irq_b = irq_b;
++	ipu->irq_c = irq_c;
++	ipu->irq_d = irq_d;
+ 	ipu->irq_sync = irq_sync;
+ 	ipu->irq_err = irq_err;
+ 
+diff --git a/drivers/gpu/ipu-v3/ipu-cpmem.c b/drivers/gpu/ipu-v3/ipu-cpmem.c
+index 883a314..a24ab1b 100644
+--- a/drivers/gpu/ipu-v3/ipu-cpmem.c
++++ b/drivers/gpu/ipu-v3/ipu-cpmem.c
+@@ -9,6 +9,7 @@
+  * http://www.opensource.org/licenses/gpl-license.html
+  * http://www.gnu.org/copyleft/gpl.html
+  */
++#define DEBUG
+ #include <linux/types.h>
+ #include <linux/bitrev.h>
+ #include <linux/io.h>
+@@ -114,6 +115,7 @@ static void ipu_ch_param_write_field(struct ipuv3_channel *ch, u32 wbs, u32 v)
+ 	u32 val;
+ 
+ 	pr_debug("%s %d %d %d\n", __func__, word, bit , size);
++	printk(KERN_ERR "== %s()\n", __func__);
+ 
+ 	val = readl(&base->word[word].data[i]);
+ 	val &= ~(mask << ofs);
+diff --git a/drivers/gpu/ipu-v3/ipu-csi.c b/drivers/gpu/ipu-v3/ipu-csi.c
+index 06631ac..8f5386d 100644
+--- a/drivers/gpu/ipu-v3/ipu-csi.c
++++ b/drivers/gpu/ipu-v3/ipu-csi.c
+@@ -12,6 +12,7 @@
+  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  * for more details.
+  */
++#define DEBUG
+ #include <linux/export.h>
+ #include <linux/module.h>
+ #include <linux/types.h>
+diff --git a/drivers/gpu/ipu-v3/ipu-dc.c b/drivers/gpu/ipu-v3/ipu-dc.c
+index d3ad534..75f9f5e 100644
+--- a/drivers/gpu/ipu-v3/ipu-dc.c
++++ b/drivers/gpu/ipu-v3/ipu-dc.c
+@@ -13,6 +13,7 @@
+  * for more details.
+  */
+ 
++#define DEBUG 1
+ #include <linux/export.h>
+ #include <linux/module.h>
+ #include <linux/types.h>
+@@ -24,6 +25,9 @@
+ #include <video/imx-ipu-v3.h>
+ #include "ipu-prv.h"
+ 
++#undef DEBUG
++#define DEBUG 1
++
+ #define DC_MAP_CONF_PTR(n)	(0x108 + ((n) & ~0x1) * 2)
+ #define DC_MAP_CONF_VAL(n)	(0x144 + ((n) & ~0x1) * 2)
+ 
+@@ -121,6 +125,7 @@ static void dc_link_event(struct ipu_dc *dc, int event, int addr, int priority)
+ {
+ 	u32 reg;
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	reg = readl(dc->base + DC_RL_CH(event));
+ 	reg &= ~(0xffff << (16 * (event & 0x1)));
+ 	reg |= ((addr << 8) | priority) << (16 * (event & 0x1));
+@@ -132,6 +137,7 @@ static void dc_write_tmpl(struct ipu_dc *dc, int word, u32 opcode, u32 operand,
+ {
+ 	struct ipu_dc_priv *priv = dc->priv;
+ 	u32 reg1, reg2;
++	printk(KERN_ERR "== %s()\n", __func__);
+ 
+ 	if (opcode == WCLK) {
+ 		reg1 = (operand << 20) & 0xfff00000;
+@@ -224,6 +230,7 @@ int ipu_dc_init_sync(struct ipu_dc *dc, struct ipu_di *di, bool interlaced,
+ 	dc_link_event(dc, DC_EVT_NEW_CHAN, 0, 0);
+ 	dc_link_event(dc, DC_EVT_NEW_ADDR, 0, 0);
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	reg = readl(dc->base + DC_WR_CH_CONF);
+ 	if (interlaced)
+ 		reg |= DC_WR_CH_CONF_FIELD_MODE;
+@@ -260,6 +267,7 @@ void ipu_dc_enable_channel(struct ipu_dc *dc)
+ 
+ 	di = dc->di;
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	reg = readl(dc->base + DC_WR_CH_CONF);
+ 	reg |= DC_WR_CH_CONF_PROG_TYPE_NORMAL;
+ 	writel(reg, dc->base + DC_WR_CH_CONF);
+@@ -271,6 +279,8 @@ static irqreturn_t dc_irq_handler(int irq, void *dev_id)
+ 	struct ipu_dc *dc = dev_id;
+ 	u32 reg;
+ 
++	//panic("I'm called\n");
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	reg = readl(dc->base + DC_WR_CH_CONF);
+ 	reg &= ~DC_WR_CH_CONF_PROG_TYPE_MASK;
+ 	writel(reg, dc->base + DC_WR_CH_CONF);
+@@ -333,6 +343,7 @@ static void ipu_dc_map_config(struct ipu_dc_priv *priv, enum ipu_dc_map map,
+ 	int ptr = map * 3 + byte_num;
+ 	u32 reg;
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	reg = readl(priv->dc_reg + DC_MAP_CONF_VAL(ptr));
+ 	reg &= ~(0xffff << (16 * (ptr & 0x1)));
+ 	reg |= ((offset << 8) | mask) << (16 * (ptr & 0x1));
+@@ -346,6 +357,7 @@ static void ipu_dc_map_config(struct ipu_dc_priv *priv, enum ipu_dc_map map,
+ 
+ static void ipu_dc_map_clear(struct ipu_dc_priv *priv, int map)
+ {
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	u32 reg = readl(priv->dc_reg + DC_MAP_CONF_PTR(map));
+ 
+ 	writel(reg & ~(0xffff << (16 * (map & 0x1))),
+@@ -414,23 +426,43 @@ int ipu_dc_init(struct ipu_soc *ipu, struct device *dev,
+ 		priv->channels[i].base = priv->dc_reg + channel_offsets[i];
+ 	}
+ 
++#if 1
++	priv->dc_irq = ipu->irq_c;
++
++	ret = devm_request_irq(dev, priv->dc_irq, dc_irq_handler, IRQF_SHARED, NULL,
++			       &priv->channels[1]);
++#else
+ 	priv->dc_irq = ipu_map_irq(ipu, IPU_IRQ_DC_FC_1);
+-	if (!priv->dc_irq)
+-		return -EINVAL;
+ 	ret = devm_request_irq(dev, priv->dc_irq, dc_irq_handler, 0, NULL,
+ 			       &priv->channels[1]);
+-	if (ret < 0)
++#endif
++	if (ret < 0) {
++		printk(KERN_ERR "Fail to request irq %i\n", priv->dc_irq);
+ 		return ret;
++	}
+ 	disable_irq(priv->dc_irq);
++
++
++#if 1
++	priv->dp_irq = ipu->irq_d;
++	ret = request_irq(priv->dp_irq, dc_irq_handler, 0, NULL,
++			       &priv->channels[5]);
++#else
+ 	priv->dp_irq = ipu_map_irq(ipu, IPU_IRQ_DP_SF_END);
+-	if (!priv->dp_irq)
+-		return -EINVAL;
+ 	ret = devm_request_irq(dev, priv->dp_irq, dc_irq_handler, 0, NULL,
+ 			       &priv->channels[5]);
+-	if (ret < 0)
++#endif
++
++//	if (!priv->dp_irq)	return -EINVAL;
++//	ret = devm_request_irq(dev, priv->dp_irq, dc_irq_handler, 0, NULL,
++//			       &priv->channels[5]);
++	if (ret < 0) {
++		printk(KERN_ERR "Fail to request irq %i\n", ipu->irq_b);
+ 		return ret;
++	}
+ 	disable_irq(priv->dp_irq);
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	writel(DC_WR_CH_CONF_WORD_SIZE_24 | DC_WR_CH_CONF_DISP_ID_PARALLEL(1) |
+ 			DC_WR_CH_CONF_PROG_DI_ID,
+ 			priv->channels[1].base + DC_WR_CH_CONF);
+diff --git a/drivers/gpu/ipu-v3/ipu-di.c b/drivers/gpu/ipu-v3/ipu-di.c
+index 359268e..4ba8d65 100644
+--- a/drivers/gpu/ipu-v3/ipu-di.c
++++ b/drivers/gpu/ipu-v3/ipu-di.c
+@@ -12,6 +12,7 @@
+  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  * for more details.
+  */
++#define DEBUG
+ #include <linux/export.h>
+ #include <linux/module.h>
+ #include <linux/types.h>
+@@ -136,6 +137,7 @@ static inline u32 ipu_di_read(struct ipu_di *di, unsigned offset)
+ 
+ static inline void ipu_di_write(struct ipu_di *di, u32 value, unsigned offset)
+ {
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	writel(value, di->base + offset);
+ }
+ 
+@@ -406,6 +408,7 @@ static void ipu_di_config_clock(struct ipu_di *di,
+ 	unsigned clkgen0;
+ 	uint32_t val;
+ 
++	printk(KERN_ERR "%s()\n", __func__);
+ 	if (sig->clkflags & IPU_DI_CLKMODE_EXT) {
+ 		/*
+ 		 * CLKMODE_EXT means we must use the DI clock: this is
+diff --git a/drivers/gpu/ipu-v3/ipu-dmfc.c b/drivers/gpu/ipu-v3/ipu-dmfc.c
+index 042c395..d8166c4 100644
+--- a/drivers/gpu/ipu-v3/ipu-dmfc.c
++++ b/drivers/gpu/ipu-v3/ipu-dmfc.c
+@@ -12,6 +12,7 @@
+  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  * for more details.
+  */
++#define DEBUG
+ #include <linux/export.h>
+ #include <linux/types.h>
+ #include <linux/errno.h>
+@@ -214,6 +215,7 @@ static int ipu_dmfc_setup_channel(struct dmfc_channel *dmfc, int slots,
+ 		break;
+ 	}
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	field |= DMFC_SEGMENT(segment);
+ 
+ 	val = readl(priv->base + dmfc->data->channel_reg);
+@@ -252,6 +254,9 @@ static int dmfc_find_slots(struct ipu_dmfc_priv *priv, int slots)
+ 	for (i = 0; i < DMFC_NUM_CHANNELS; i++)
+ 		slotmask_used |= priv->channels[i].slotmask;
+ 
++	printk(KERN_ERR "%s() slots = %u, slotmask_need = 0x%x, slotmask_used = 0x%x\n",
++	       __func__,slots, slotmask_need, slotmask_used);
++
+ 	while (slotmask_need <= 0xff) {
+ 		if (!(slotmask_used & slotmask_need))
+ 			return segment;
+@@ -320,6 +325,7 @@ int ipu_dmfc_alloc_bandwidth(struct dmfc_channel *dmfc,
+ 
+ 	mutex_lock(&priv->mutex);
+ 
++	printk(KERN_ERR "*** slots = %i\n", slots);
+ 	if (slots > 8) {
+ 		ret = -EBUSY;
+ 		goto out;
+@@ -338,6 +344,7 @@ int ipu_dmfc_alloc_bandwidth(struct dmfc_channel *dmfc,
+ 		segment = dmfc_find_slots(priv, slots);
+ 	if (segment < 0) {
+ 		ret = -EBUSY;
++		printk(KERN_ERR "*** segment = %i\n", segment);
+ 		goto out;
+ 	}
+ 
+@@ -355,6 +362,7 @@ int ipu_dmfc_init_channel(struct dmfc_channel *dmfc, int width)
+ 	struct ipu_dmfc_priv *priv = dmfc->priv;
+ 	u32 dmfc_gen1;
+ 
++	printk(KERN_ERR "############################################# %s()\n", __func__);
+ 	dmfc_gen1 = readl(priv->base + DMFC_GENERAL1);
+ 
+ 	if ((dmfc->slots * 64 * 4) / width > dmfc->data->max_fifo_lines)
+@@ -412,6 +420,7 @@ int ipu_dmfc_init(struct ipu_soc *ipu, struct device *dev, unsigned long base,
+ 		priv->channels[i].data = &dmfcdata[i];
+ 	}
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	writel(0x0, priv->base + DMFC_WR_CHAN);
+ 	writel(0x0, priv->base + DMFC_DP_CHAN);
+ 
+@@ -420,6 +429,7 @@ int ipu_dmfc_init(struct ipu_soc *ipu, struct device *dev, unsigned long base,
+ 	 * into 8 slots.
+ 	 */
+ 	priv->bandwidth_per_slot = clk_get_rate(ipu_clk) * 4 / 8;
++	printk(KERN_ERR "### bandwidth_per_slot = %lu\n", priv->bandwidth_per_slot);
+ 
+ 	dev_dbg(dev, "dmfc: 8 slots with %ldMpixel/s bandwidth each\n",
+ 			priv->bandwidth_per_slot / 1000000);
+diff --git a/drivers/gpu/ipu-v3/ipu-dp.c b/drivers/gpu/ipu-v3/ipu-dp.c
+index 98686ed..2568a59 100644
+--- a/drivers/gpu/ipu-v3/ipu-dp.c
++++ b/drivers/gpu/ipu-v3/ipu-dp.c
+@@ -12,6 +12,7 @@
+  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  * for more details.
+  */
++#define DEBUG
+ #include <linux/export.h>
+ #include <linux/kernel.h>
+ #include <linux/types.h>
+diff --git a/drivers/gpu/ipu-v3/ipu-prv.h b/drivers/gpu/ipu-v3/ipu-prv.h
+index bfb1e8a..9efba64 100644
+--- a/drivers/gpu/ipu-v3/ipu-prv.h
++++ b/drivers/gpu/ipu-v3/ipu-prv.h
+@@ -158,8 +158,14 @@ struct ipu_soc {
+ 
+ 	struct ipuv3_channel	channel[64];
+ 
++	int			irq_c;
++	int			irq_d;
++	int			irq_a;
++	int			irq_b;
+ 	int			irq_sync;
+ 	int			irq_err;
++	int			dp_irq;
++	int			dc_irq;
+ 	struct irq_domain	*domain;
+ 
+ 	struct ipu_cpmem	*cpmem_priv;
+@@ -180,6 +186,7 @@ static inline u32 ipu_idmac_read(struct ipu_soc *ipu, unsigned offset)
+ static inline void ipu_idmac_write(struct ipu_soc *ipu, u32 value,
+ 				   unsigned offset)
+ {
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	writel(value, ipu->idmac_reg + offset);
+ }
+ 
+diff --git a/drivers/gpu/ipu-v3/ipu-smfc.c b/drivers/gpu/ipu-v3/ipu-smfc.c
+index 4ef9109..b6cc7d2 100644
+--- a/drivers/gpu/ipu-v3/ipu-smfc.c
++++ b/drivers/gpu/ipu-v3/ipu-smfc.c
+@@ -8,6 +8,7 @@
+  * http://www.opensource.org/licenses/gpl-license.html
+  * http://www.gnu.org/copyleft/gpl.html
+  */
++#define DEBUG
+ #include <linux/export.h>
+ #include <linux/types.h>
+ #include <linux/init.h>
+@@ -45,6 +46,7 @@ int ipu_smfc_set_burstsize(struct ipu_smfc *smfc, int burstsize)
+ 	unsigned long flags;
+ 	u32 val, shift;
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	spin_lock_irqsave(&priv->lock, flags);
+ 
+ 	shift = smfc->chno * 4;
+@@ -65,6 +67,7 @@ int ipu_smfc_map_channel(struct ipu_smfc *smfc, int csi_id, int mipi_id)
+ 	unsigned long flags;
+ 	u32 val, shift;
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	spin_lock_irqsave(&priv->lock, flags);
+ 
+ 	shift = smfc->chno * 3;
+@@ -85,6 +88,7 @@ int ipu_smfc_set_watermark(struct ipu_smfc *smfc, u32 set_level, u32 clr_level)
+ 	unsigned long flags;
+ 	u32 val, shift;
+ 
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	spin_lock_irqsave(&priv->lock, flags);
+ 
+ 	shift = smfc->chno * 6 + (smfc->chno > 1 ? 4 : 0);
+diff --git a/drivers/video/console/fbcon.c b/drivers/video/console/fbcon.c
+index 6e92917..f9ac91d 100644
+--- a/drivers/video/console/fbcon.c
++++ b/drivers/video/console/fbcon.c
+@@ -441,6 +441,8 @@ static int __init fb_console_setup(char *this_opt)
+ 	char *options;
+ 	int i, j;
+ 
++	printk(KERN_ERR "############################# %s()\n", __func__);
++
+ 	if (!this_opt || !*this_opt)
+ 		return 1;
+ 
+@@ -568,6 +570,7 @@ static void fbcon_prepare_logo(struct vc_data *vc, struct fb_info *info,
+ 	unsigned short *save = NULL, *r, *q;
+ 	int logo_height;
+ 
++	printk(KERN_ERR "############################# %s()\n", __func__);
+ 	if (info->flags & FBINFO_MODULE) {
+ 		logo_shown = FBCON_LOGO_DONTSHOW;
+ 		return;
+@@ -776,6 +779,7 @@ static void con2fb_init_display(struct vc_data *vc, struct fb_info *info,
+ 	struct fbcon_ops *ops = info->fbcon_par;
+ 	int ret;
+ 
++	printk(KERN_ERR "############################# %s()\n", __func__);
+ 	ops->currcon = fg_console;
+ 
+ 	if (info->fbops->fb_set_par && !(ops->flags & FBCON_FLAGS_INIT)) {
+@@ -822,6 +826,7 @@ static int set_con2fb_map(int unit, int newidx, int user)
+ 	struct fb_info *info = registered_fb[newidx];
+ 	struct fb_info *oldinfo = NULL;
+  	int found, err = 0;
++	printk(KERN_ERR "############################# %s()\n", __func__);
+ 
+ 	if (oldidx == newidx)
+ 		return 0;
+@@ -3258,6 +3263,7 @@ static int fbcon_event_notify(struct notifier_block *self,
+ 	struct fb_blit_caps *caps;
+ 	int idx, ret = 0;
+ 
++	printk(KERN_ERR "############################# %s()\n", __func__);
+ 	/*
+ 	 * ignore all events except driver registration and deregistration
+ 	 * if fbcon is not active
+@@ -3604,6 +3610,7 @@ static int __init fb_console_init(void)
+ {
+ 	int i;
+ 
++	printk(KERN_ERR "############################# %s()\n", __func__);
+ 	console_lock();
+ 	fb_register_client(&fbcon_event_notifier);
+ 	fbcon_device = device_create(fb_class, NULL, MKDEV(0, 0), NULL,
+diff --git a/drivers/video/fbdev/core/fbmem.c b/drivers/video/fbdev/core/fbmem.c
+index 4e73b6f..7b4248f 100644
+--- a/drivers/video/fbdev/core/fbmem.c
++++ b/drivers/video/fbdev/core/fbmem.c
+@@ -598,6 +598,8 @@ int fb_prepare_logo(struct fb_info *info, int rotate)
+ 	unsigned int yres;
+ 
+ 	memset(&fb_logo, 0, sizeof(struct logo_data));
++	printk(KERN_ERR "########################\n");
++	printk(KERN_ERR "#### PREPARING LOGO ####\n");
+ 
+ 	if (info->flags & FBINFO_MISC_TILEBLITTING ||
+ 	    info->flags & FBINFO_MODULE)
+diff --git a/drivers/video/fbdev/mx3fb.c b/drivers/video/fbdev/mx3fb.c
+index 7947634..6601717 100644
+--- a/drivers/video/fbdev/mx3fb.c
++++ b/drivers/video/fbdev/mx3fb.c
+@@ -9,6 +9,7 @@
+  * published by the Free Software Foundation.
+  */
+ 
++#define DEBUG
+ #include <linux/module.h>
+ #include <linux/kernel.h>
+ #include <linux/platform_device.h>
+@@ -350,6 +351,7 @@ static u32 mx3fb_read_reg(struct mx3fb_data *mx3fb, unsigned long reg)
+ 
+ static void mx3fb_write_reg(struct mx3fb_data *mx3fb, u32 value, unsigned long reg)
+ {
++	printk(KERN_ERR "== %s()\n", __func__);
+ 	__raw_writel(value, mx3fb->reg_base + reg);
+ }
+ 
+diff --git a/drivers/video/logo/logo.c b/drivers/video/logo/logo.c
+index 10fbfd8..c0e5a0b 100644
+--- a/drivers/video/logo/logo.c
++++ b/drivers/video/logo/logo.c
+@@ -31,6 +31,7 @@ static bool logos_freed;
+ static int __init fb_logo_late_init(void)
+ {
+ 	logos_freed = true;
++	printk(KERN_ERR "======================================== FREE LOGOS\n");
+ 	return 0;
+ }
+ 
+@@ -47,6 +48,7 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
+ 	if (nologo || logos_freed)
+ 		return NULL;
+ 
++	printk(KERN_ERR " === Logo with depth %i\n", depth);
+ 	if (depth >= 1) {
+ #ifdef CONFIG_LOGO_LINUX_MONO
+ 		/* Generic Linux logo */
+diff --git a/kernel/irq/chip.c b/kernel/irq/chip.c
+index 5797909..37c7c54 100644
+--- a/kernel/irq/chip.c
++++ b/kernel/irq/chip.c
+@@ -468,12 +468,23 @@ void handle_level_irq(struct irq_desc *desc)
+ 	 * keep it masked and get out of here
+ 	 */
+ 	if (unlikely(!desc->action || irqd_irq_disabled(&desc->irq_data))) {
++	//	if (!desc->action) {
++	//		panic("oops: no action");
++	//	} else {
++	//		panic("irq is disabled");
++	//	}
+ 		desc->istate |= IRQS_PENDING;
+ 		goto out_unlock;
+ 	}
+ 
+ 	kstat_incr_irqs_this_cpu(desc);
++
++	volatile void *buf = desc->action;
++//	panic( "action->handler = %p\n", desc->action->handler);
++
++//	desc->action = NULL; /* oops, I did it again */
+ 	handle_irq_event(desc);
++	desc->action = buf;
+ 
+ 	cond_unmask_irq(desc);
+ 
+-- 
+2.1.4
+
