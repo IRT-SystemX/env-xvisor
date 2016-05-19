@@ -144,13 +144,13 @@ $(DISKB)/nor_flash.list: $(CONF) | $(DISKB)
 	$(Q)echo "$(ADDRH_FLASH_CMD) /$(DISK_BOARD)/cmdlist" >> $@
 	$(Q)echo "$(ADDRH_FLASH_KERN) /$(DISK_BOARD)/$(KERN_IMG)" >> $@
 ifeq ($(USE_KERN_DT),1)
-	$(Q)echo "$(ADDRH_FLASH_KERN_DT) /$(DISK_BOARD)/$(KERN_DT).dtb" >> $@
+	$(Q)echo "$(ADDRH_FLASH_KERN_DT) /$(DISK_BOARD)/$(GUESTS_DT).dtb" >> $@
 endif
 	$(Q)echo "$(ADDRH_FLASH_RFS) /$(DISK_ARCH)/$(INITRD)" >> $@
 
 
 ifeq ($(USE_KERN_DT),1)
-  DISKB_KERN_DTB = $(DISKB)/$(KERN_DT).dtb
+  DISKB_KERN_DTB = $(DISKB)/$(GUESTS_DT).dtb
 endif
 
 $(DISKB)/cmdlist: $(CONF) $(DISKB)/$(KERN_IMG) $(DISKA)/$(INITRD) $(DISKB_KERN_DTB)

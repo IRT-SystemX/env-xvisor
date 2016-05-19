@@ -46,7 +46,7 @@ endif
 -include $(MAKEDIR)/uboot.mk
 -include $(MAKEDIR)/loader.mk
 -include $(MAKEDIR)/tftp.mk
--include $(MAKEDIR)/board-$(GUEST_BOARDNAME).mk
+-include $(MAKEDIR)/board-$(BOARDNAME).mk
 ifeq ($(BOARD_ANDROID),1)
 	-include $(MAKEDIR)/android.mk
 else

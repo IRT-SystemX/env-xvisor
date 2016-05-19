@@ -53,7 +53,7 @@ usage() {
     printf "Configure the ELA hypervisor build system.\n" >> ${OUTPUT}
     printf "\n" >> ${OUTPUT}
     printf "Options are:\n" >> ${OUTPUT}
-    printf "  -X, --xvisor GIT_REVISION\tBuild a specific revision " \
+    printf "  -X, --xvisor GIT_REVISION\t\tBuild a specific revision " \
 	    "(branch or tag) of Xvisor\n" >> ${OUTPUT}
     printf "  -b BOARDNAME,--board BOARDNAME\tBuild the " >> ${OUTPUT}
     printf "hypervisor and the required components for the " >> ${OUTPUT}
@@ -72,6 +72,8 @@ usage() {
     printf "parallel jobs\n" >> ${OUTPUT}
     printf "  -n\t\t\t\t\tEquivalent to \"--board nitrogen6x\"\n" >> ${OUTPUT}
     printf "  -m\t\t\t\t\tEquivalent to \"--board nitrogen6_max\"\n" >> \
+	   ${OUTPUT}
+    printf "  -g GUEST BOARD NAME\t\t\t\tType of the guests to host\n" >> \
 	   ${OUTPUT}
 
     exit ${RET}
@@ -191,6 +193,12 @@ option_parse() {
 		BOARDNAME=nitrogen6_max
 		;;
 
+	    (-g)
+		option_test_arg $*
+		shift
+		GUEST_BOARDNAME="$1"
+		;;
+
 	    (*)
 		printf "Unrecognized option \"$1\"\n" >/dev/stderr
 		# Usage will exit
@@ -216,21 +224,26 @@ option_board_validate() {
     # Check that the board is correct
     case ${BOARDNAME} in
 	("nitrogen6x"|"nitrogen6_max" | "nitrogen6x_android")
-	    GUEST_BOARDNAME=sabrelite-a9
+	    guest_boardname=sabrelite-a9
 	    XVISOR_CFG_BOARDNAME=nitrogen6x
 	    ;;
 	("bcm2835-raspi")
-	    GUEST_BOARDNAME=realview-eb-mpcore
+	    guest_boardname=realview-eb-mpcore
 	    XVISOR_CFG_BOARDNAME=${BOARDNAME}
 	    ;;
 	("vexpress-a9"|"sabrelite-a9"|"realview-pb-a8"|"realview-eb-mpcore")
-	    GUEST_BOARDNAME=${BOARDNAME}
+	    guest_boardname=${BOARDNAME}
 	    XVISOR_CFG_BOARDNAME=${BOARDNAME}
 	    ;;
 	(*)
+	    guest_boardname=""
 	    board_list 1
 	    ;;
     esac
+
+    if [ -z "$GUEST_BOARDNAME" ]; then
+	    GUEST_BOARDNAME="$guest_boardname"
+    fi
 }
 
 option_board() {
