@@ -67,17 +67,17 @@ dtsflags += -x assembler-with-cpp -I$(XVISOR_LINUX_CONF_DIR)
 dtsflags += -I$(LINUX_DIR)/include -I$(LINUX_DIR)/arch/$(ARCH)/boot/dts
 
 
-$(TMPDIR)/$(GUESTS_DT).pre.dts: $(XVISOR_LINUX_CONF_DIR)/$(GUESTS_DT).dts | \
+$(TMPDIR)/$(DTB_IN_IMG).pre.dts: $(XVISOR_LINUX_CONF_DIR)/$(DTB_IN_IMG).dts | \
   XVISOR-prepare $(DISK_DIR)/$(DISK_BOARD)
 	$(Q)sed -re 's|/include/|#include|' $< >$@
 
-$(TMPDIR)/$(GUESTS_DT).dts: $(TMPDIR)/$(GUESTS_DT).pre.dts
-	@echo "(cpp) $(GUESTS_DT)"
+$(TMPDIR)/$(DTB_IN_IMG).dts: $(TMPDIR)/$(DTB_IN_IMG).pre.dts
+	@echo "(cpp) $(DTB_IN_IMG)"
 	$(Q)$(CROSS_COMPILE)cpp $(dtsflags) $< -o $@
 
-$(DISK_DIR)/$(DISK_BOARD)/$(GUESTS_DT).dtb: $(TMPDIR)/$(GUESTS_DT).dts \
+$(DISK_DIR)/$(DISK_BOARD)/$(DTB_IN_IMG).dtb: $(TMPDIR)/$(DTB_IN_IMG).dts \
   $(XVISOR_BUILD_DIR)/tools/dtc/dtc
-	@echo "(dtc) $(GUESTS_DT)"
+	@echo "(dtc) $(DTB_IN_IMG)"
 	$(Q)$(XVISOR_BUILD_DIR)/tools/dtc/dtc -I dts -O dtb -p 0x800 -o $@ $<
 
 linux-configure: $(LINUX_BUILD_CONF)
