@@ -1,0 +1,24 @@
+From df0665e83dcaf035c69502b97105e2df86039944 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Micka=C3=ABl=20Tansorier?= <mickael.tansorier@openwide.fr>
+Date: Fri, 20 May 2016 09:39:35 +0200
+Subject: [PATCH 1/2] virtio: allow aplly patch virtio i2c
+
+---
+ include/uapi/linux/virtio_ids.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/uapi/linux/virtio_ids.h b/include/uapi/linux/virtio_ids.h
+index 5f60aa4..77925f5 100644
+--- a/include/uapi/linux/virtio_ids.h
++++ b/include/uapi/linux/virtio_ids.h
+@@ -39,6 +39,7 @@
+ #define VIRTIO_ID_9P		9 /* 9p virtio console */
+ #define VIRTIO_ID_RPROC_SERIAL 11 /* virtio remoteproc serial link */
+ #define VIRTIO_ID_CAIF	       12 /* Virtio caif */
++#define VIRTIO_ID_GPU          16 /* virtio GPU */
+ #define VIRTIO_ID_INPUT        18 /* virtio input */
+ 
+ #endif /* _LINUX_VIRTIO_IDS_H */
+-- 
+1.9.1
+
