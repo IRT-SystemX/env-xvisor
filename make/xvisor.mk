@@ -161,14 +161,27 @@ ifeq ($(USE_KERN_DT),1)
 	$(Q)printf "copy $(ADDRH_KERN_DT) $(ADDRH_FLASH_KERN_DT) " >> $@
 	$(Q)$(call FILE_SIZE,$(DISKB_KERN_DTB)) >> $@
 endif
+ifeq ($(USE_RFS),1)
 	$(Q)printf "copy $(ADDRH_RFS) $(ADDRH_FLASH_RFS) " >> $@
 	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
-ifeq ($(USE_KERN_DT),1)
+endif
+
+ifeq ($(USE_KERN_DT) $(USE_RFS),1 1)
 	$(Q)printf "start_linux_fdt $(ADDRH_KERN) $(ADDRH_KERN_DT) $(ADDRH_RFS) " >> $@
 	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
 else
+ifeq ($(USE_KERN_DT),1)
+	$(Q)printf "start_linux_fdt $(ADDRH_KERN) $(ADDRH_KERN_DT) " >> $@
+	$(Q)printf "\n" >> $@
+else
+ifeq ($(USE_RFS),1)
 	$(Q)printf "start_linux $(ADDRH_KERN) $(ADDRH_RFS) " >> $@
 	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
+else
+	$(Q)printf "start_linux $(ADDRH_KERN) " >> $@
+	$(Q)printf "\n" >> $@
+endif
+endif
 endif
 
 $(DISK_XVISOR_BANNER): $(XVISOR_BANNER) $(DISK_SYSTEM)
