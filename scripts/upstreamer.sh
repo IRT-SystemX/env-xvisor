@@ -107,6 +107,12 @@ for p in $patches; do # Print the list
    echo "$p"
 done
 
+# No patches?
+if [ x"$patches" = "x" ]; then
+   err "Could not retrieve any patches??? "
+      "Your current branch must-not be up-to-date with $branch."
+fi
+
 # Warn that we are about to launch an editor
 prompt "Will now edit the cover letter. Ready?"
 if [ $? -ne 0 ]; then
