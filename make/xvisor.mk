@@ -148,6 +148,10 @@ ifeq ($(USE_KERN_DT),1)
 endif
 	$(Q)echo "$(ADDRH_FLASH_RFS) /$(DISK_ARCH)/$(INITRD)" >> $@
 
+$(DISKB)/nor_flash2.list: $(DISKB)/nor_flash.list
+	@echo "(Generating) nor_flash2.list"
+	$(Q)sed -re 's/cmdlist/cmdlist2/g' $< > $@
+
 
 ifeq ($(USE_KERN_DT),1)
   DISKB_KERN_DTB = $(DISKB)/$(GUESTS_DT).dtb
@@ -184,6 +188,22 @@ endif
 endif
 endif
 
+
+define INSERT_CMD
+   sed -re "$$(wc -l $@ | grep -o "^[0-9]*")i$(1)"
+endef
+
+$(DISKB)/cmdlist2: $(CONF) $(DISKB)/$(KERN_IMG) $(DISKA)/$(INITRD) $(DISKB_KERN_DTB)
+	@echo "(Generating) cmdlist2"
+	$(Q)printf "copy $(ADDRH_KERN) $(ADDRH_FLASH_KERN) " > $@
+	$(Q)$(call FILE_SIZE,$(DISKB)/$(KERN_IMG)) >> $@
+	$(Q)printf "copy $(ADDRH_KERN_DT) $(ADDRH_FLASH_KERN_DT) " >> $@
+	$(Q)$(call FILE_SIZE,$(DISKB_KERN_DTB)) >> $@
+	$(Q)printf "fdt_override_u32 $(ADDRH_KERN_DT) /clcd@10020000/panel/panel-timing/hactive 640\n" >> $@
+	$(Q)printf "fdt_override_u32 $(ADDRH_KERN_DT) /clcd@10020000/panel/panel-timing/vactive 480\n" >> $@
+	$(Q)printf "start_linux_fdt $(ADDRH_KERN) $(ADDRH_KERN_DT) $(ADDRH_RFS) " >> $@
+	$(Q)$(call FILE_SIZE,$(DISKA)/$(INITRD)) >> $@
+
 $(DISK_XVISOR_BANNER): $(XVISOR_BANNER) $(DISK_SYSTEM)
 	$(Q)cp $< $@
 
@@ -194,7 +214,7 @@ $(DISK_IMG): $(STAMPDIR)/.disk_populate
 	 	genext2fs -b $${SIZE} -N $${BLK_SZ} -d $(DISK_DIR) $@
 
 $(STAMPDIR)/.disk_populate: $(DISKB)/$(KERN_IMG) $(DISKB)/$(XVISOR_FW_IMG) \
-  $(DISKB)/nor_flash.list $(DISKB)/cmdlist $(DISKA)/$(INITRD) \
+  $(DISKB)/nor_flash.list $(DISKB)/nor_flash2.list $(DISKB)/cmdlist $(DISKB)/cmdlist2 $(DISKA)/$(INITRD) \
   $(DISKA)/$(DTB_IN_IMG).dtb $(DISKB_KERN_DTB) $(DISK_XVISOR_BANNER) $(STAMPDIR)
 	$(Q)touch $@
 
